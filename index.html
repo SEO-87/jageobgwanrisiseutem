@@ -1,16 +1,954 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>작업 연결 관리 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 적용 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* 스크롤바 숨기기 (선택 사항) */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        /* 선택된 항목 스타일 */
+        .selected-item {
+            background-color: #DBEAFE; /* blue-100 */
+            border-left: 4px solid #3B82F6; /* blue-500 */
+        }
+        /* 작업 카테고리 버튼의 선택된 스타일 */
+        .task-category-selected {
+            background-color: #3B82F6; /* blue-500 */
+            color: #FFFFFF; /* text-white */
+        }
+        /* 작업 카테고리 버튼의 기본 스타일 */
+        .task-category-default {
+            background-color: #E5E7EB; /* gray-200 */
+            color: #4B5563; /* gray-700 */
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        /* 현황 테이블 스타일 */
+        .status-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .status-table th, .status-table td {
+            border: 1px solid #e2e8f0; /* gray-200 */
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .status-table th {
+            background-color: #f8fafc; /* gray-50 */
+            font-weight: 600;
+            color: #475569; /* slate-600 */
+        }
+        .status-table tbody tr:nth-child(even) {
+            background-color: #f8fafc; /* gray-50 */
+        }
+    </style>
 </head>
+<body class="bg-gray-100 min-h-screen flex flex-col md:flex-row relative">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="flex items-center text-blue-500 text-lg">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            데이터 로딩 중...
+        </div>
+    </div>
 
-<body>
-  Hello world
-  <script src="script.js"></script>
+    <!-- Main Container -->
+    <div class="flex flex-1 flex-col md:flex-row bg-white rounded-lg shadow-lg m-4 overflow-hidden">
+
+        <!-- Left Panel: Task List -->
+        <div id="left-panel" class="w-full md:w-1/3 border-r border-gray-200 p-4 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">턴키업체 작업 관리</h2>
+                <button id="add-item-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    추가
+                </button>
+            </div>
+            <!-- Search Bar -->
+            <div class="mb-4">
+                <input type="text" id="search-input" placeholder="호선 검색" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <!-- Connection Status Display -->
+            <div class="mb-4 text-sm text-gray-600">
+                접속상태: <span id="connection-status-display" class="font-semibold">로딩 중...</span>
+            </div>
+            <!-- List -->
+            <div id="item-list" class="flex-1 overflow-y-auto no-scrollbar">
+                <!-- Items will be loaded dynamically here -->
+                <!-- Filled by JavaScript on initial load -->
+                <p id="no-items-message" class="text-gray-500 text-center mt-4 hidden">항목이 없습니다. 새 항목을 추가해주세요.</p>
+            </div>
+            <!-- Status Button -->
+            <div class="mt-4">
+                <button id="show-status-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    현황 보기
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Detail Edit Form (initially hidden) -->
+        <div id="detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="detail-panel-title" class="text-xl font-semibold text-gray-800">X 2894</h2>
+                <button id="close-detail-btn" class="md:hidden text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto no-scrollbar">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- New: ID input field for new items -->
+                    <div id="id-input-group">
+                        <label for="itemIdInput" class="block text-sm font-medium text-gray-700 mb-1">호선</label>
+                        <input type="text" id="itemIdInput" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="새 항목 ID 입력">
+                    </div>
+
+                    <!-- Task Categories -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="task-category-selector" class="block text-sm font-medium text-gray-700 mb-1">작업</label>
+                            <div id="task-category-selector" class="flex space-x-2">
+                                <!-- Added text-sm for smaller screens -->
+                                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 task-category-button task-category-default text-sm md:text-base" data-category="deckCovering">데크커버링</button>
+                                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 task-category-button task-category-default text-sm md:text-base" data-category="floor">장판</button>
+                                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 task-category-button task-category-default text-sm md:text-base" data-category="furniture">가구</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- N, C, B, A, U Sections (now dynamically loaded based on selected task category) -->
+                    <div class="space-y-4">
+                        <!-- N -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Navi. Deck</label>
+                            <div class="flex space-x-2 yn-category-buttons" data-deck="n">
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="N">미완료</button>
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="Y">완료</button>
+                            </div>
+                        </div>
+                        <!-- C -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">C Deck</label>
+                            <div class="flex space-x-2 yn-category-buttons" data-deck="c">
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="N">미완료</button>
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="Y">완료</button>
+                            </div>
+                        </div>
+                        <!-- B -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">B Deck</label>
+                            <div class="flex space-x-2 yn-category-buttons" data-deck="b">
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="N">미완료</button>
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="Y">완료</button>
+                            </div>
+                        </div>
+                        <!-- A -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">A Deck</label>
+                            <div class="flex space-x-2 yn-category-buttons" data-deck="a">
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="N">미완료</button>
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="Y">완료</button>
+                            </div>
+                        </div>
+                        <!-- U -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Upp. Deck</label>
+                            <div class="flex space-x-2 yn-category-buttons" data-deck="u">
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="N">미완료</button>
+                                <button class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md font-medium shadow-sm hover:bg-gray-300" data-value="Y">완료</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">전달 사항</label>
+                        <textarea id="notes" rows="3" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+                    </div>
+
+                    <!-- Registration Date (Example) -->
+                    <div>
+                        <label for="reg-date" class="block text-sm font-medium text-gray-700 mb-1">등록일</label>
+                        <input type="date" id="reg-date" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Buttons -->
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300">Cancel</button>
+                <button id="save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">Save</button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Status View (initially hidden) -->
+        <div id="status-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">현황</h2>
+                <button id="close-status-btn" class="md:hidden text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Status Search Bar -->
+            <div class="mb-4">
+                <input type="text" id="status-search-input" placeholder="호선 검색" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex-1 overflow-y-auto no-scrollbar">
+                <table class="status-table">
+                    <thead>
+                        <tr>
+                            <th>호선</th>
+                            <th>작업</th>
+                            <th>N</th>
+                            <th>C</th>
+                            <th>B</th>
+                            <th>A</th>
+                            <th>U</th>
+                            <th>전달 사항</th>
+                            <th>등록일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status-table-body">
+                        <!-- Status data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Panel: Note Detail View (initially hidden) -->
+        <div id="note-detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">전달 사항 상세</h2>
+                <button id="close-note-detail-btn" class="md:hidden text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="note-content" class="flex-1 overflow-y-auto no-scrollbar p-2 bg-gray-50 rounded-md text-gray-700">
+                <!-- Note content will be injected here -->
+            </div>
+             <div class="mt-6 flex justify-end">
+                <button id="close-note-detail-btn-desktop" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300 hidden md:block">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase variables
+        let app;
+        let db;
+        let auth;
+        let userId = 'anonymous'; // Default to anonymous
+        let isAuthReady = false;
+
+        // Firebase Initialization and Authentication
+        // Replit에서 실행 시 __firebase_config 및 __app_id가 정의되지 않을 수 있으므로,
+        // 여기에 직접 Firebase 프로젝트 설정을 입력해야 합니다.
+        // Firebase Console에서 웹 앱 설정을 복사하여 아래에 붙여넣으세요.
+        const firebaseConfig = {
+            apiKey: "AIzaSyCu3XRkCndcJ-6gKhisFjY2MmAx0bWQylg", // 사용자가 직접 입력한 키로 업데이트
+            authDomain: "production-4aaf4.firebaseapp.com",
+            projectId: "production-4aaf4",
+            storageBucket: "production-4aaf4.firebasestorage.app",
+            messagingSenderId: "545092752049",
+            appId: "1:545092752049:web:f9ee01d4c2df98b9ce8890",
+            measurementId: "G-GS960RT4NX"
+        };
+        const appId = firebaseConfig.projectId; // 또는 별도의 앱 ID가 있다면 여기에 입력하세요.
+
+        console.log("Firebase Config:", firebaseConfig);
+        console.log("App ID:", appId);
+
+        // Firebase 설정 유효성 검사 및 초기화
+        // API 키가 플레이스홀더 값인지 확인 (이전 오류 방지)
+        if (firebaseConfig.apiKey === "YOUR_API_KEY" || !firebaseConfig.projectId || firebaseConfig.projectId === "YOUR_PROJECT_ID") {
+            console.error("Firebase 설정이 완료되지 않았습니다. 'YOUR_API_KEY', 'YOUR_PROJECT_ID' 등을 실제 값으로 변경해주세요.");
+            document.getElementById('connection-status-display').textContent = 'Firebase 설정 필요!';
+            window.alert("Firebase 설정이 완료되지 않았습니다. 코드 내 'YOUR_API_KEY', 'YOUR_PROJECT_ID' 등을 실제 값으로 변경해주세요.");
+            isAuthReady = false; // Firebase가 초기화되지 않았으므로 인증 준비 안 됨
+        } else {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('connection-status-display').textContent = '연결됨';
+                    console.log("User authenticated:", userId);
+                } else {
+                    try {
+                        console.log("Attempting anonymous sign-in...");
+                        // Replit 환경에서는 __initial_auth_token이 없을 수 있으므로 익명 로그인 시도
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously. User ID:", auth.currentUser.uid);
+                        userId = auth.currentUser.uid;
+                        document.getElementById('connection-status-display').textContent = '연결됨';
+                    } catch (error) {
+                        console.error("Firebase authentication error:", error);
+                        document.getElementById('connection-status-display').textContent = '끊김';
+                        window.alert("Firebase 인증 오류: " + error.message + "\n\nFirebase Console에서 API 키 제한 및 익명 인증 설정을 확인해주세요.");
+                    }
+                }
+                isAuthReady = true;
+                console.log("isAuthReady set to true. Starting data listener.");
+                // Once authenticated, start listening for data
+                listenToItems();
+            });
+        }
+
+        // Helper function to create default Y/N deck status with notes
+        function createDefaultDeckStatus() {
+            return { n: 'N', c: 'N', b: 'N', a: 'N', u: 'N', notes: '' }; // Added notes property
+        }
+
+        // Local data (used as fallback or for initial structure)
+        let items = []; // This will be populated by Firestore or initial local data
+
+        const leftPanel = document.getElementById('left-panel');
+        const itemListDiv = document.getElementById('item-list');
+        const detailPanel = document.getElementById('detail-panel');
+        const detailPanelTitle = document.getElementById('detail-panel-title');
+        const closeDetailBtn = document.getElementById('close-detail-btn');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const searchInput = document.getElementById('search-input');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const noItemsMessage = document.getElementById('no-items-message');
+        const connectionStatusDisplay = document.getElementById('connection-status-display');
+        const showStatusBtn = document.getElementById('show-status-btn');
+        const statusPanel = document.getElementById('status-panel');
+        const closeStatusBtn = document.getElementById('close-status-btn');
+        const statusTableBody = document.getElementById('status-table-body');
+        const statusSearchInput = document.getElementById('status-search-input'); // New: Status search input
+
+        const noteDetailPanel = document.getElementById('note-detail-panel'); // New: Note detail panel
+        const noteContentDiv = document.getElementById('note-content');       // New: Note content div
+        const closeNoteDetailBtn = document.getElementById('close-note-detail-btn'); // New: Close note detail button (mobile)
+        const closeNoteDetailBtnDesktop = document.getElementById('close-note-detail-btn-desktop'); // New: Close note detail button (desktop)
+
+
+        const itemIdInputGroup = document.getElementById('id-input-group');
+        const itemIdInput = document.getElementById('itemIdInput');
+        const notesTextarea = document.getElementById('notes');
+        const regDateInput = document.getElementById('reg-date');
+
+        const taskCategoryButtons = document.querySelectorAll('.task-category-button');
+        const deckYNSections = document.querySelectorAll('.yn-category-buttons');
+
+        let currentSelectedItem = null;
+        let isNewItemMode = false;
+        let currentSelectedTaskCategory = 'deckCovering'; // Default selected task category
+
+        const deckKeys = ['n', 'c', 'b', 'a', 'u'];
+        const taskCategories = ['deckCovering', 'floor', 'furniture']; // Define all task categories
+
+        function showLoading() {
+            loadingOverlay.classList.remove('hidden');
+            console.log("Loading overlay shown.");
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+            console.log("Loading overlay hidden.");
+        }
+
+        // Function to listen to Firestore data
+        function listenToItems() {
+            if (!isAuthReady || !db) {
+                console.warn("Firestore not ready or not initialized. Cannot listen to items.");
+                return;
+            }
+
+            showLoading();
+            const itemsCollectionRef = collection(db, `artifacts/${appId}/public/data/items`);
+            console.log("Listening to Firestore collection:", `artifacts/${appId}/public/data/items`);
+            onSnapshot(itemsCollectionRef, (snapshot) => {
+                items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log("Items fetched from Firestore:", items);
+                renderItemList(searchInput.value.trim()); // Re-render with current filter
+                hideLoading();
+
+                if (items.length === 0) {
+                    noItemsMessage.classList.remove('hidden');
+                } else {
+                    noItemsMessage.classList.add('hidden');
+                }
+            }, (error) => {
+                console.error("Error fetching items from Firestore: ", error);
+                hideLoading();
+                window.alert("데이터를 불러오는 중 오류가 발생했습니다.");
+            });
+        }
+
+        // Function to render the item list
+        function renderItemList(filterText = '') {
+            console.log("Rendering item list with filter:", filterText);
+            itemListDiv.innerHTML = '';
+            const filteredItems = items.filter(item =>
+                item.id.includes(filterText) ||
+                (item.notes && item.notes.includes(filterText)) // Filter by notes (if they exist)
+            );
+
+            if (filteredItems.length === 0 && filterText === '') {
+                noItemsMessage.classList.remove('hidden');
+            } else {
+                noItemsMessage.classList.add('hidden');
+            }
+
+            filteredItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'bg-gray-50 p-3 rounded-md mb-2 flex justify-between items-center cursor-pointer hover:bg-blue-50 transition duration-200';
+                itemDiv.dataset.id = item.id;
+                itemDiv.innerHTML = `
+                    <div>
+                        <div class="font-medium text-gray-700">${item.id}</div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="text-gray-500 hover:text-blue-600 p-1 rounded-full hover:bg-blue-100 transition duration-200 edit-btn" data-id="${item.id}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                        <button class="text-gray-500 hover:text-red-600 p-1 rounded-full hover:bg-red-100 transition duration-200 delete-btn" data-id="${item.id}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+                itemListDiv.appendChild(itemDiv);
+            });
+
+            if (filterText && filteredItems.length === 1) {
+                const singleItem = filteredItems[0];
+                const itemElement = itemListDiv.querySelector(`[data-id="${singleItem.id}"]`);
+                if (itemElement) {
+                    const prevSelected = itemListDiv.querySelector('.selected-item');
+                    if (prevSelected) prevSelected.classList.remove('selected-item');
+                    itemElement.classList.add('selected-item');
+                    loadDetailPanel(singleItem);
+                }
+            } else if (filterText && filteredItems.length !== 1) {
+                const prevSelected = itemListDiv.querySelector('.selected-item');
+                if (prevSelected) prevSelected.classList.remove('selected-item');
+                detailPanel.classList.add('hidden');
+                detailPanel.classList.remove('flex');
+                statusPanel.classList.add('hidden'); // Ensure status panel is hidden
+                statusPanel.classList.remove('flex');
+                noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
+                noteDetailPanel.classList.remove('flex');
+                leftPanel.classList.remove('hidden'); // Show left panel
+                currentSelectedItem = null;
+                isNewItemMode = false;
+            }
+        }
+
+        // Function to load data into the detail panel
+        function loadDetailPanel(item) {
+            console.log("Loading detail panel for item:", item ? item.id : "New Item");
+            currentSelectedItem = item;
+            isNewItemMode = !item;
+
+            detailPanelTitle.textContent = `X ${item ? item.id : '새 항목'}`;
+            // Load notes specific to the current task category
+            notesTextarea.value = (item && item[currentSelectedTaskCategory] && item[currentSelectedTaskCategory].notes) ? item[currentSelectedTaskCategory].notes : '';
+            regDateInput.value = item ? item.regDate : new Date().toISOString().split('T')[0];
+
+            if (isNewItemMode) {
+                itemIdInputGroup.classList.remove('hidden');
+                itemIdInput.value = '';
+                itemIdInput.readOnly = false; // Make editable for new items
+                itemIdInput.focus(); // Focus on the ID input for new items
+            } else {
+                itemIdInputGroup.classList.remove('hidden'); // Keep visible for existing items
+                itemIdInput.value = item.id;
+                itemIdInput.readOnly = true; // Make read-only for existing items
+            }
+
+            // Update task category button styles
+            taskCategoryButtons.forEach(button => {
+                button.classList.remove('task-category-selected', 'task-category-default');
+                if (button.dataset.category === currentSelectedTaskCategory) {
+                    button.classList.add('task-category-selected');
+                } else {
+                    button.classList.add('task-category-default');
+                }
+            });
+
+            // Update N, C, B, A, U button statuses based on currentSelectedTaskCategory
+            deckYNSections.forEach(section => {
+                const deckKey = section.dataset.deck;
+                const nButton = section.querySelector('button[data-value="N"]');
+                const yButton = section.querySelector('button[data-value="Y"]');
+
+                let valueToSet = 'N'; // Default to 'N'
+
+                // Ensure the currentSelectedTaskCategory property exists on the item
+                if (item && item[currentSelectedTaskCategory] && item[currentSelectedTaskCategory][deckKey]) {
+                    valueToSet = item[currentSelectedTaskCategory][deckKey];
+                }
+                console.log(`Deck: ${deckKey}, Category: ${currentSelectedTaskCategory}, Value to set: ${valueToSet}`);
+
+                // Reset all buttons in the section to default (gray)
+                nButton.classList.remove('bg-blue-500', 'text-white');
+                nButton.classList.add('bg-gray-200', 'text-gray-700');
+                yButton.classList.remove('bg-blue-500', 'text-white');
+                yButton.classList.add('bg-gray-200', 'text-gray-700');
+
+                // Apply selected style based on valueToSet
+                if (valueToSet === 'Y') {
+                    yButton.classList.remove('bg-gray-200', 'text-gray-700');
+                    yButton.classList.add('bg-blue-500', 'text-white');
+                } else { // valueToSet is 'N'
+                    nButton.classList.remove('bg-gray-200', 'text-gray-700');
+                    nButton.classList.add('bg-blue-500', 'text-white');
+                }
+            });
+
+            // Ensure detail panel is visible and uses flex layout, hide other panels
+            statusPanel.classList.add('hidden');
+            statusPanel.classList.remove('flex');
+            noteDetailPanel.classList.add('hidden');
+            noteDetailPanel.classList.remove('flex');
+            detailPanel.classList.remove('hidden');
+            detailPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden');
+            }
+        }
+
+        // Function to render the status table
+        function renderStatusTable(filterText = '') { // Added filterText parameter
+            statusTableBody.innerHTML = ''; // Clear existing table rows
+
+            // Sort items by 'id' (호선)
+            const sortedItems = [...items].sort((a, b) => {
+                const idA = parseInt(a.id);
+                const idB = parseInt(b.id);
+                return idA - idB;
+            });
+
+            // Filter items based on the provided filterText
+            const itemsToRender = sortedItems.filter(item =>
+                item.id.includes(filterText)
+            );
+
+            itemsToRender.forEach(item => {
+                // For each item, iterate through all task categories to display their status
+                taskCategories.forEach(categoryKey => {
+                    const categoryData = item[categoryKey];
+                    if (categoryData) { // Only render if the category data exists for the item
+                        const row = statusTableBody.insertRow();
+                        row.insertCell().textContent = item.id; // 호선
+                        row.insertCell().textContent = {
+                            deckCovering: '데크커버링',
+                            floor: '장판',
+                            furniture: '가구'
+                        }[categoryKey]; // 작업 (카테고리 이름)
+                        row.insertCell().textContent = categoryData.n === 'Y' ? 'O' : 'X'; // N: 완료 -> O, 미완료 -> X
+                        row.insertCell().textContent = categoryData.c === 'Y' ? 'O' : 'X'; // C: 완료 -> O, 미완료 -> X
+                        row.insertCell().textContent = categoryData.b === 'Y' ? 'O' : 'X'; // B: 완료 -> O, 미완료 -> X
+                        row.insertCell().textContent = categoryData.a === 'Y' ? 'O' : 'X'; // A: 완료 -> O, 미완료 -> X
+                        row.insertCell().textContent = categoryData.u === 'Y' ? 'O' : 'X'; // U: 완료 -> O, 미완료 -> X
+
+                        // Changed: Display link for notes if content exists
+                        const notesCell = row.insertCell();
+                        if (categoryData.notes && categoryData.notes.trim() !== '') {
+                            const noteLink = document.createElement('button');
+                            noteLink.textContent = '내용 보기'; // Text for the link
+                            noteLink.className = 'text-blue-600 hover:underline text-sm view-notes-link';
+                            noteLink.dataset.notes = categoryData.notes; // Store notes content in data attribute
+                            notesCell.appendChild(noteLink);
+                        } else {
+                            notesCell.textContent = '-'; // Display hyphen if no notes
+                        }
+
+                        row.insertCell().textContent = item.regDate; // 등록일
+                    }
+                });
+            });
+
+            // Hide detail panel and show status panel
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
+            noteDetailPanel.classList.remove('flex');
+            statusPanel.classList.remove('hidden');
+            statusPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden');
+            }
+        }
+
+        // New function to show note detail panel
+        function showNoteDetail(notesContent) {
+            noteContentDiv.textContent = notesContent;
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            statusPanel.classList.add('hidden');
+            statusPanel.classList.remove('flex');
+            noteDetailPanel.classList.remove('hidden');
+            noteDetailPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden');
+            }
+        }
+
+
+        // Event listener for all Y/N deck buttons (delegated)
+        document.addEventListener('click', (event) => {
+            const clickedButton = event.target.closest('.yn-category-buttons button');
+            if (clickedButton) {
+                const parentDiv = clickedButton.closest('.yn-category-buttons');
+                if (parentDiv) {
+                    console.log("Y/N button clicked:", clickedButton.dataset.value, "for deck:", parentDiv.dataset.deck);
+                    const buttonsInGroup = parentDiv.querySelectorAll('button');
+                    buttonsInGroup.forEach(btn => {
+                        // Remove blue/white if present, add gray/text
+                        btn.classList.remove('bg-blue-500', 'text-white');
+                        btn.classList.add('bg-gray-200', 'text-gray-700');
+                    });
+                    // Apply blue/white to the clicked button
+                    clickedButton.classList.remove('bg-gray-200', 'text-gray-700');
+                    clickedButton.classList.add('bg-blue-500', 'text-white');
+                }
+            }
+        });
+
+        // Event listener for task category buttons
+        taskCategoryButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const category = event.target.dataset.category;
+                console.log("Task category button clicked:", category);
+                if (currentSelectedTaskCategory !== category) {
+                    currentSelectedTaskCategory = category;
+                    // Re-load detail panel to update Y/N buttons and notes for the new category
+                    loadDetailPanel(currentSelectedItem);
+                }
+            });
+        });
+
+
+        // Event delegation for item clicks (including edit buttons)
+        itemListDiv.addEventListener('click', async (event) => {
+            const target = event.target;
+            const itemDiv = target.closest('[data-id]');
+
+            if (itemDiv) {
+                const itemId = itemDiv.dataset.id;
+                console.log("Item clicked:", itemId);
+                currentSelectedItem = items.find(item => item.id === itemId);
+                isNewItemMode = false;
+
+                const prevSelected = itemListDiv.querySelector('.selected-item');
+                if (prevSelected) prevSelected.classList.remove('selected-item');
+                itemDiv.classList.add('selected-item');
+
+                if (target.closest('.edit-btn')) {
+                    console.log("Edit button clicked for item:", itemId);
+                    loadDetailPanel(currentSelectedItem);
+                } else if (target.closest('.delete-btn')) {
+                    console.log("Delete button clicked for item:", itemId);
+                    if (window.confirm(`정말로 ${itemId} 항목을 삭제하시겠습니까?`)) {
+                        showLoading();
+                        try {
+                            await deleteDoc(doc(db, `artifacts/${appId}/public/data/items`, itemId));
+                            console.log("Document deleted:", itemId);
+                            window.alert('항목이 삭제되었습니다.');
+                        } catch (e) {
+                            console.error("Error removing document: ", e);
+                            window.alert("항목 삭제 중 오류가 발생했습니다.");
+                        } finally {
+                            hideLoading();
+                        }
+                    }
+                } else {
+                    console.log("Item div clicked for item:", itemId);
+                    loadDetailPanel(currentSelectedItem);
+                }
+            }
+        });
+
+        // Close detail panel button (visible only on mobile)
+        closeDetailBtn.addEventListener('click', () => {
+            console.log("Close detail button clicked.");
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            leftPanel.classList.remove('hidden'); // Show left panel
+            currentSelectedItem = null;
+            isNewItemMode = false;
+            const prevSelected = itemListDiv.querySelector('.selected-item');
+            if (prevSelected) prevSelected.classList.remove('selected-item');
+        });
+
+        // Add new item button
+        addItemBtn.addEventListener('click', () => {
+            console.log("Add item button clicked. Entering new item mode.");
+            isNewItemMode = true;
+            currentSelectedItem = null;
+            currentSelectedTaskCategory = 'deckCovering'; // Reset to default when adding new item
+            loadDetailPanel(null); // Load empty form for new item
+            const prevSelected = itemListDiv.querySelector('.selected-item');
+            if (prevSelected) prevSelected.classList.remove('selected-item');
+        });
+
+        // Save button
+        saveBtn.addEventListener('click', async () => {
+            console.log("Save button clicked.");
+            // Firebase가 초기화되지 않았으면 저장 방지
+            if (!isAuthReady || !db || !auth) {
+                window.alert("데이터베이스가 준비되지 않았습니다. Firebase 설정을 확인하거나 잠시 후 다시 시도해주세요.");
+                console.error("Save failed: Firebase not ready or not authenticated.");
+                return;
+            }
+
+            let itemId = itemIdInput.value.trim();
+            console.log("Item ID to save (before checks):", itemId);
+            console.log("isNewItemMode:", isNewItemMode);
+            console.log("currentSelectedItem:", currentSelectedItem);
+
+            if (isNewItemMode) {
+                if (!itemId) {
+                    window.alert('새 항목의 아이디를 입력해주세요!');
+                    console.warn("Save failed: Item ID is empty for new item.");
+                    return;
+                }
+                // Check if ID already exists in Firestore
+                showLoading();
+                try {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/items`, itemId);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        window.alert('이미 존재하는 아이디입니다. 다른 아이디를 입력해주세요.');
+                        console.warn("Save failed: Item ID already exists.");
+                        hideLoading();
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Error checking document existence: ", e);
+                    window.alert("아이디 중복 확인 중 오류가 발생했습니다.");
+                    hideLoading();
+                    return;
+                }
+            } else { // Not a new item, so it must be an edit operation
+                if (!currentSelectedItem) { // This is the critical check for the error
+                    window.alert('편집할 항목이 선택되지 않았습니다.');
+                    console.warn("Save failed: No item selected for editing.");
+                    return;
+                }
+                itemId = currentSelectedItem.id;
+                console.log("Updating existing item with ID:", itemId);
+            }
+
+            // Prepare data for saving
+            let itemDataToSave;
+            if (isNewItemMode) {
+                itemDataToSave = {
+                    regDate: regDateInput.value,
+                    deckCovering: createDefaultDeckStatus(),
+                    floor: createDefaultDeckStatus(),
+                    furniture: createDefaultDeckStatus()
+                };
+                // For a new item, apply the current notes to the currently selected category
+                itemDataToSave[currentSelectedTaskCategory].notes = notesTextarea.value;
+                console.log("New item data initialized:", itemDataToSave);
+            } else {
+                itemDataToSave = JSON.parse(JSON.stringify(currentSelectedItem)); // Deep copy
+                itemDataToSave.regDate = regDateInput.value; // Update regDate
+
+                // Ensure the currentSelectedTaskCategory object exists and has a notes property
+                if (!itemDataToSave[currentSelectedTaskCategory]) {
+                    itemDataToSave[currentSelectedTaskCategory] = createDefaultDeckStatus();
+                }
+                itemDataToSave[currentSelectedTaskCategory].notes = notesTextarea.value; // Update notes for the current category
+                console.log("Existing item data copied and updated:", itemDataToSave);
+            }
+
+            // Update the currently selected task category's deck status (N/Y buttons)
+            const currentDeckStatus = {};
+            deckYNSections.forEach(section => {
+                const deckKey = section.dataset.deck;
+                currentDeckStatus[deckKey] = section.querySelector('button.bg-blue-500')?.dataset.value || 'N';
+            });
+            // Merge the updated deck status with the notes for the current category
+            itemDataToSave[currentSelectedTaskCategory] = {
+                ...itemDataToSave[currentSelectedTaskCategory], // Keep existing notes and other properties
+                ...currentDeckStatus // Overlay the updated N/Y statuses
+            };
+            console.log("Final item data to save:", itemDataToSave);
+
+            showLoading();
+            try {
+                const docRef = doc(db, `artifacts/${appId}/public/data/items`, itemId);
+                await setDoc(docRef, itemDataToSave, { merge: true }); // Use setDoc with merge for both create and update
+                window.alert('데이터가 저장되었습니다!');
+                console.log("Data saved successfully to Firestore.");
+            } catch (e) {
+                console.error("Error saving document: ", e);
+                window.alert("데이터 저장 중 오류가 발생했습니다.");
+            } finally {
+                hideLoading();
+                // After saving, return to the main list view
+                detailPanel.classList.add('hidden');
+                detailPanel.classList.remove('flex');
+                leftPanel.classList.remove('hidden'); // Show left panel
+                currentSelectedItem = null;
+                isNewItemMode = false;
+                const prevSelected = itemListDiv.querySelector('.selected-item');
+                if (prevSelected) prevSelected.classList.remove('selected-item');
+                // Ensure the list is re-rendered to show the updated item (if it was an edit) or new item
+                renderItemList(searchInput.value.trim());
+            }
+        });
+
+        // Cancel button
+        cancelBtn.addEventListener('click', () => {
+            console.log("Cancel button clicked.");
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            leftPanel.classList.remove('hidden'); // Show left panel
+            currentSelectedItem = null;
+            isNewItemMode = false;
+            const prevSelected = itemListDiv.querySelector('.selected-item');
+            if (prevSelected) prevSelected.classList.remove('selected-item');
+        });
+
+        // Event listener for search input
+        searchInput.addEventListener('input', (event) => {
+            const filterText = event.target.value.trim();
+            console.log("Search input changed:", filterText);
+            renderItemList(filterText);
+        });
+
+        // Event listener for "현황 보기" button
+        showStatusBtn.addEventListener('click', () => {
+            console.log("Show Status button clicked.");
+            statusSearchInput.value = ''; // Clear search input when opening status view
+            renderStatusTable(); // Render all items initially
+            // Hide left panel on mobile when status panel is shown
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden');
+            }
+        });
+
+        // Event listener for "현황" panel close button (mobile only)
+        closeStatusBtn.addEventListener('click', () => {
+            console.log("Close Status button clicked.");
+            statusPanel.classList.add('hidden');
+            statusPanel.classList.remove('flex');
+            leftPanel.classList.remove('hidden'); // Show left panel
+        });
+
+        // Event listener for status search input
+        statusSearchInput.addEventListener('input', (event) => {
+            const filterText = event.target.value.trim();
+            console.log("Status search input changed:", filterText);
+            renderStatusTable(filterText); // Filter status table by input
+        });
+
+        // Event listener for note detail link clicks (delegated to statusTableBody)
+        statusTableBody.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target.classList.contains('view-notes-link')) {
+                const notes = target.dataset.notes;
+                showNoteDetail(notes);
+            }
+        });
+
+        // Event listener for "전달 사항 상세" panel close button (mobile)
+        closeNoteDetailBtn.addEventListener('click', () => {
+            console.log("Close Note Detail button clicked.");
+            noteDetailPanel.classList.add('hidden');
+            noteDetailPanel.classList.remove('flex');
+            statusPanel.classList.remove('hidden'); // Return to status panel
+            statusPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
+            }
+        });
+
+        // Event listener for "전달 사항 상세" panel close button (desktop)
+        closeNoteDetailBtnDesktop.addEventListener('click', () => {
+            console.log("Close Note Detail button (desktop) clicked.");
+            noteDetailPanel.classList.add('hidden');
+            noteDetailPanel.classList.remove('flex');
+            statusPanel.classList.remove('hidden'); // Return to status panel
+            statusPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
+            }
+        });
+
+
+        // Adjust panel visibility on screen resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) { // md breakpoint (768px)
+                leftPanel.classList.remove('hidden'); // Desktop: always show left panel
+                if (!detailPanel.classList.contains('hidden')) {
+                    detailPanel.classList.add('flex');
+                    statusPanel.classList.add('hidden'); // Ensure only one right panel is active
+                    statusPanel.classList.remove('flex');
+                    noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
+                    noteDetailPanel.classList.remove('flex');
+                } else if (!statusPanel.classList.contains('hidden')) {
+                    statusPanel.classList.add('flex');
+                    detailPanel.classList.add('hidden'); // Ensure only one right panel is active
+                    detailPanel.classList.remove('flex');
+                    noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
+                    noteDetailPanel.classList.remove('flex');
+                } else if (!noteDetailPanel.classList.contains('hidden')) { // Handle note detail panel
+                    noteDetailPanel.classList.add('flex');
+                    detailPanel.classList.add('hidden');
+                    detailPanel.classList.remove('flex');
+                    statusPanel.classList.add('hidden');
+                    statusPanel.classList.remove('flex');
+                }
+                else {
+                    // If all are hidden, ensure they remain hidden but left panel is visible
+                    detailPanel.classList.add('hidden');
+                    detailPanel.classList.remove('flex');
+                    statusPanel.classList.add('hidden');
+                    statusPanel.classList.remove('flex');
+                    noteDetailPanel.classList.add('hidden');
+                    noteDetailPanel.classList.remove('flex');
+                }
+            } else { // Mobile view
+                if (!detailPanel.classList.contains('hidden') || !statusPanel.classList.contains('hidden') || !noteDetailPanel.classList.contains('hidden')) {
+                    leftPanel.classList.add('hidden'); // Hide left panel if any right panel is open
+                } else {
+                    leftPanel.classList.remove('hidden'); // Show left panel if no right panel is open
+                }
+            }
+        });
+    </script>
 </body>
-
 </html>
