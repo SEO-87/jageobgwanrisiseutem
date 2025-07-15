@@ -34,8 +34,18 @@
             background-color: #E5E7EB; /* gray-200 */
             color: #4B5563; /* gray-700 */
         }
-        .loading-overlay {
-            position: absolute;
+        /* 현황 카테고리 필터 버튼의 선택된 스타일 */
+        .status-category-selected {
+            background-color: #3B82F6; /* blue-500 */
+            color: #FFFFFF; /* text-white */
+        }
+        /* 현황 카테고리 필터 버튼의 기본 스타일 */
+        .status-category-default {
+            background-color: #E5E7EB; /* gray-200 */
+            color: #4B5563; /* gray-700 */
+        }
+        .loading-overlay, .modal-overlay {
+            position: fixed; /* Changed to fixed to cover entire viewport */
             top: 0;
             left: 0;
             right: 0;
@@ -44,7 +54,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 10;
+            z-index: 1000; /* Increased z-index to be on top */
         }
         /* 현황 테이블 스타일 */
         .status-table {
@@ -76,6 +86,20 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             데이터 로딩 중...
+        </div>
+    </div>
+
+    <!-- Password Confirmation Modal -->
+    <div id="password-modal" class="modal-overlay hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">삭제 확인</h3>
+            <p class="text-gray-600 mb-4">삭제를 진행하려면 비밀번호를 입력하세요.</p>
+            <input type="password" id="delete-password-input" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 mb-3" placeholder="비밀번호 입력">
+            <p id="password-error-message" class="text-red-500 text-sm mb-3 hidden">비밀번호가 올바르지 않습니다.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300">취소</button>
+                <button id="confirm-delete-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">확인</button>
+            </div>
         </div>
     </div>
 
@@ -116,7 +140,8 @@
         <!-- Right Panel: Detail Edit Form (initially hidden) -->
         <div id="detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
             <div class="flex justify-between items-center mb-4">
-                <h2 id="detail-panel-title" class="text-xl font-semibold text-gray-800">X 2894</h2>
+                <!-- Removed "X" from the title -->
+                <h2 id="detail-panel-title" class="text-xl font-semibold text-gray-800">2894</h2>
                 <button id="close-detail-btn" class="md:hidden text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -127,7 +152,8 @@
                     <!-- New: ID input field for new items -->
                     <div id="id-input-group">
                         <label for="itemIdInput" class="block text-sm font-medium text-gray-700 mb-1">호선</label>
-                        <input type="text" id="itemIdInput" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="새 항목 ID 입력">
+                        <!-- Changed placeholder text -->
+                        <input type="text" id="itemIdInput" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="새 호선 입력">
                     </div>
 
                     <!-- Task Categories -->
@@ -220,6 +246,13 @@
             <div class="mb-4">
                 <input type="text" id="status-search-input" placeholder="호선 검색" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
             </div>
+            <!-- New: Status Task Category Filter Buttons -->
+            <div class="mb-4 flex space-x-2 overflow-x-auto no-scrollbar">
+                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-selected text-sm md:text-base" data-category="all">전체</button>
+                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="deckCovering">데크커버링</button>
+                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="floor">장판</button>
+                <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="furniture">가구</button>
+            </div>
             <div class="flex-1 overflow-y-auto no-scrollbar">
                 <table class="status-table">
                     <thead>
@@ -295,7 +328,8 @@
         if (firebaseConfig.apiKey === "YOUR_API_KEY" || !firebaseConfig.projectId || firebaseConfig.projectId === "YOUR_PROJECT_ID") {
             console.error("Firebase 설정이 완료되지 않았습니다. 'YOUR_API_KEY', 'YOUR_PROJECT_ID' 등을 실제 값으로 변경해주세요.");
             document.getElementById('connection-status-display').textContent = 'Firebase 설정 필요!';
-            window.alert("Firebase 설정이 완료되지 않았습니다. 코드 내 'YOUR_API_KEY', 'YOUR_PROJECT_ID' 등을 실제 값으로 변경해주세요.");
+            // Changed from window.alert to a more user-friendly message or custom modal if needed
+            // window.alert("Firebase 설정이 완료되지 않았습니다. 코드 내 'YOUR_API_KEY', 'YOUR_PROJECT_ID' 등을 실제 값으로 변경해주세요.");
             isAuthReady = false; // Firebase가 초기화되지 않았으므로 인증 준비 안 됨
         } else {
             app = initializeApp(firebaseConfig);
@@ -318,7 +352,8 @@
                     } catch (error) {
                         console.error("Firebase authentication error:", error);
                         document.getElementById('connection-status-display').textContent = '끊김';
-                        window.alert("Firebase 인증 오류: " + error.message + "\n\nFirebase Console에서 API 키 제한 및 익명 인증 설정을 확인해주세요.");
+                        // Changed from window.alert to a more user-friendly message or custom modal if needed
+                        // window.alert("Firebase 인증 오류: " + error.message + "\n\nFirebase Console에서 API 키 제한 및 익명 인증 설정을 확인해주세요.");
                     }
                 }
                 isAuthReady = true;
@@ -359,6 +394,13 @@
         const closeNoteDetailBtn = document.getElementById('close-note-detail-btn'); // New: Close note detail button (mobile)
         const closeNoteDetailBtnDesktop = document.getElementById('close-note-detail-btn-desktop'); // New: Close note detail button (desktop)
 
+        // Password Modal Elements
+        const passwordModal = document.getElementById('password-modal');
+        const deletePasswordInput = document.getElementById('delete-password-input');
+        const passwordErrorMessage = document.getElementById('password-error-message');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        let itemIdToDelete = null; // To store the ID of the item to be deleted
 
         const itemIdInputGroup = document.getElementById('id-input-group');
         const itemIdInput = document.getElementById('itemIdInput');
@@ -367,10 +409,12 @@
 
         const taskCategoryButtons = document.querySelectorAll('.task-category-button');
         const deckYNSections = document.querySelectorAll('.yn-category-buttons');
+        const statusCategoryButtons = document.querySelectorAll('.status-category-button'); // New: Status category filter buttons
 
         let currentSelectedItem = null;
         let isNewItemMode = false;
-        let currentSelectedTaskCategory = 'deckCovering'; // Default selected task category
+        let currentSelectedTaskCategory = 'deckCovering'; // Default selected task category for detail panel
+        let currentStatusFilterCategory = 'all'; // Default selected task category for status panel
 
         const deckKeys = ['n', 'c', 'b', 'a', 'u'];
         const taskCategories = ['deckCovering', 'floor', 'furniture']; // Define all task categories
@@ -399,6 +443,10 @@
                 items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 console.log("Items fetched from Firestore:", items);
                 renderItemList(searchInput.value.trim()); // Re-render with current filter
+                // Also re-render status table if it's visible
+                if (!statusPanel.classList.contains('hidden')) {
+                    renderStatusTable(statusSearchInput.value.trim(), currentStatusFilterCategory);
+                }
                 hideLoading();
 
                 if (items.length === 0) {
@@ -409,7 +457,7 @@
             }, (error) => {
                 console.error("Error fetching items from Firestore: ", error);
                 hideLoading();
-                window.alert("데이터를 불러오는 중 오류가 발생했습니다.");
+                // window.alert("데이터를 불러오는 중 오류가 발생했습니다."); // Changed from window.alert
             });
         }
 
@@ -419,7 +467,7 @@
             itemListDiv.innerHTML = '';
             const filteredItems = items.filter(item =>
                 item.id.includes(filterText) ||
-                (item.notes && item.notes.includes(filterText)) // Filter by notes (if they exist)
+                taskCategories.some(category => item[category] && item[category].notes && item[category].notes.includes(filterText)) // Filter by notes across all categories
             );
 
             if (filteredItems.length === 0 && filterText === '') {
@@ -478,10 +526,18 @@
             currentSelectedItem = item;
             isNewItemMode = !item;
 
-            detailPanelTitle.textContent = `X ${item ? item.id : '새 항목'}`;
+            // Removed "X" from the title
+            detailPanelTitle.textContent = item ? item.id : '새 항목';
             // Load notes specific to the current task category
             notesTextarea.value = (item && item[currentSelectedTaskCategory] && item[currentSelectedTaskCategory].notes) ? item[currentSelectedTaskCategory].notes : '';
-            regDateInput.value = item ? item.regDate : new Date().toISOString().split('T')[0];
+            // Set regDateInput value based on whether it's a new item or existing item
+            // Get today's date in YYYY-MM-DD format, adjusted for local timezone offset
+            const today = new Date();
+            const offset = today.getTimezoneOffset() * 60000; // offset in milliseconds
+            const localDate = new Date(today.getTime() - offset);
+            const todayFormatted = localDate.toISOString().split('T')[0];
+
+            regDateInput.value = item ? item.regDate : todayFormatted;
 
             if (isNewItemMode) {
                 itemIdInputGroup.classList.remove('hidden');
@@ -547,7 +603,7 @@
         }
 
         // Function to render the status table
-        function renderStatusTable(filterText = '') { // Added filterText parameter
+        function renderStatusTable(filterText = '', categoryFilter = 'all') {
             statusTableBody.innerHTML = ''; // Clear existing table rows
 
             // Sort items by 'id' (호선)
@@ -563,8 +619,9 @@
             );
 
             itemsToRender.forEach(item => {
-                // For each item, iterate through all task categories to display their status
-                taskCategories.forEach(categoryKey => {
+                const categoriesToDisplay = categoryFilter === 'all' ? taskCategories : [categoryFilter];
+
+                categoriesToDisplay.forEach(categoryKey => {
                     const categoryData = item[categoryKey];
                     if (categoryData) { // Only render if the category data exists for the item
                         const row = statusTableBody.insertRow();
@@ -644,15 +701,39 @@
             }
         });
 
-        // Event listener for task category buttons
+        // Event listener for task category buttons (detail panel)
         taskCategoryButtons.forEach(button => {
             button.addEventListener('click', (event) => {
                 const category = event.target.dataset.category;
-                console.log("Task category button clicked:", category);
+                console.log("Task category button clicked (detail panel):", category);
                 if (currentSelectedTaskCategory !== category) {
                     currentSelectedTaskCategory = category;
                     // Re-load detail panel to update Y/N buttons and notes for the new category
                     loadDetailPanel(currentSelectedItem);
+                }
+            });
+        });
+
+        // New: Event listener for status category filter buttons
+        statusCategoryButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const category = event.target.dataset.category;
+                console.log("Status category filter button clicked:", category);
+                if (currentStatusFilterCategory !== category) {
+                    currentStatusFilterCategory = category;
+
+                    // Update button styles
+                    statusCategoryButtons.forEach(btn => {
+                        btn.classList.remove('status-category-selected', 'status-category-default');
+                        if (btn.dataset.category === currentStatusFilterCategory) {
+                            btn.classList.add('status-category-selected');
+                        } else {
+                            btn.classList.add('status-category-default');
+                        }
+                    });
+
+                    // Re-render status table with new category filter and current search text
+                    renderStatusTable(statusSearchInput.value.trim(), currentStatusFilterCategory);
                 }
             });
         });
@@ -678,25 +759,53 @@
                     loadDetailPanel(currentSelectedItem);
                 } else if (target.closest('.delete-btn')) {
                     console.log("Delete button clicked for item:", itemId);
-                    if (window.confirm(`정말로 ${itemId} 항목을 삭제하시겠습니까?`)) {
-                        showLoading();
-                        try {
-                            await deleteDoc(doc(db, `artifacts/${appId}/public/data/items`, itemId));
-                            console.log("Document deleted:", itemId);
-                            window.alert('항목이 삭제되었습니다.');
-                        } catch (e) {
-                            console.error("Error removing document: ", e);
-                            window.alert("항목 삭제 중 오류가 발생했습니다.");
-                        } finally {
-                            hideLoading();
-                        }
-                    }
+                    itemIdToDelete = itemId; // Store the ID of the item to be deleted
+                    passwordModal.classList.remove('hidden'); // Show the password modal
+                    deletePasswordInput.value = ''; // Clear previous input
+                    passwordErrorMessage.classList.add('hidden'); // Hide error message
+                    deletePasswordInput.focus(); // Focus on password input
                 } else {
                     console.log("Item div clicked for item:", itemId);
                     loadDetailPanel(currentSelectedItem);
                 }
             }
         });
+
+        // Event listener for password modal confirm button
+        confirmDeleteBtn.addEventListener('click', async () => {
+            const enteredPassword = deletePasswordInput.value;
+            const correctPassword = "2350"; // The required password
+
+            if (enteredPassword === correctPassword) {
+                passwordModal.classList.add('hidden'); // Hide the modal
+                showLoading();
+                try {
+                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/items`, itemIdToDelete));
+                    console.log("Document deleted:", itemIdToDelete);
+                    // Optionally, show a success message in a custom modal
+                } catch (e) {
+                    console.error("Error removing document: ", e);
+                    // Optionally, show an error message in a custom modal
+                } finally {
+                    hideLoading();
+                    itemIdToDelete = null; // Clear the stored ID
+                }
+            } else {
+                passwordErrorMessage.classList.remove('hidden'); // Show error message
+                deletePasswordInput.value = ''; // Clear input
+                deletePasswordInput.focus(); // Re-focus for retry
+            }
+        });
+
+        // Event listener for password modal cancel button
+        cancelDeleteBtn.addEventListener('click', () => {
+            console.log("Password modal cancel button clicked.");
+            passwordModal.classList.add('hidden'); // Hide the modal
+            itemIdToDelete = null; // Clear the stored ID
+            deletePasswordInput.value = ''; // Clear input
+            passwordErrorMessage.classList.add('hidden'); // Hide error message
+        });
+
 
         // Close detail panel button (visible only on mobile)
         closeDetailBtn.addEventListener('click', () => {
@@ -726,7 +835,7 @@
             console.log("Save button clicked.");
             // Firebase가 초기화되지 않았으면 저장 방지
             if (!isAuthReady || !db || !auth) {
-                window.alert("데이터베이스가 준비되지 않았습니다. Firebase 설정을 확인하거나 잠시 후 다시 시도해주세요.");
+                // window.alert("데이터베이스가 준비되지 않았습니다. Firebase 설정을 확인하거나 잠시 후 다시 시도해주세요."); // Changed from window.alert
                 console.error("Save failed: Firebase not ready or not authenticated.");
                 return;
             }
@@ -738,7 +847,7 @@
 
             if (isNewItemMode) {
                 if (!itemId) {
-                    window.alert('새 항목의 아이디를 입력해주세요!');
+                    // window.alert('새 항목의 아이디를 입력해주세요!'); // Changed from window.alert
                     console.warn("Save failed: Item ID is empty for new item.");
                     return;
                 }
@@ -748,20 +857,20 @@
                     const docRef = doc(db, `artifacts/${appId}/public/data/items`, itemId);
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
-                        window.alert('이미 존재하는 아이디입니다. 다른 아이디를 입력해주세요.');
+                        // window.alert('이미 존재하는 아이디입니다. 다른 아이디를 입력해주세요.'); // Changed from window.alert
                         console.warn("Save failed: Item ID already exists.");
                         hideLoading();
                         return;
                     }
                 } catch (e) {
                     console.error("Error checking document existence: ", e);
-                    window.alert("아이디 중복 확인 중 오류가 발생했습니다.");
+                    // window.alert("아이디 중복 확인 중 오류가 발생했습니다."); // Changed from window.alert
                     hideLoading();
                     return;
                 }
             } else { // Not a new item, so it must be an edit operation
                 if (!currentSelectedItem) { // This is the critical check for the error
-                    window.alert('편집할 항목이 선택되지 않았습니다.');
+                    // window.alert('편집할 항목이 선택되지 않았습니다.'); // Changed from window.alert
                     console.warn("Save failed: No item selected for editing.");
                     return;
                 }
@@ -810,11 +919,11 @@
             try {
                 const docRef = doc(db, `artifacts/${appId}/public/data/items`, itemId);
                 await setDoc(docRef, itemDataToSave, { merge: true }); // Use setDoc with merge for both create and update
-                window.alert('데이터가 저장되었습니다!');
+                window.alert('데이터가 저장되었습니다!'); // Uncommented this line
                 console.log("Data saved successfully to Firestore.");
             } catch (e) {
                 console.error("Error saving document: ", e);
-                window.alert("데이터 저장 중 오류가 발생했습니다.");
+                // window.alert("데이터 저장 중 오류가 발생했습니다."); // Changed from window.alert
             } finally {
                 hideLoading();
                 // After saving, return to the main list view
@@ -853,7 +962,17 @@
         showStatusBtn.addEventListener('click', () => {
             console.log("Show Status button clicked.");
             statusSearchInput.value = ''; // Clear search input when opening status view
-            renderStatusTable(); // Render all items initially
+            currentStatusFilterCategory = 'all'; // Reset filter to 'all'
+            // Reset status category button styles
+            statusCategoryButtons.forEach(btn => {
+                btn.classList.remove('status-category-selected', 'status-category-default');
+                if (btn.dataset.category === 'all') {
+                    btn.classList.add('status-category-selected');
+                } else {
+                    btn.classList.add('status-category-default');
+                }
+            });
+            renderStatusTable(statusSearchInput.value.trim(), currentStatusFilterCategory); // Render all items initially
             // Hide left panel on mobile when status panel is shown
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden');
@@ -872,7 +991,7 @@
         statusSearchInput.addEventListener('input', (event) => {
             const filterText = event.target.value.trim();
             console.log("Status search input changed:", filterText);
-            renderStatusTable(filterText); // Filter status table by input
+            renderStatusTable(filterText, currentStatusFilterCategory); // Filter status table by input and current category
         });
 
         // Event listener for note detail link clicks (delegated to statusTableBody)
