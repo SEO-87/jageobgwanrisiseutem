@@ -135,6 +135,12 @@
                     현황 보기
                 </button>
             </div>
+            <!-- New: 생산지원시스템 Button -->
+            <div class="mt-4">
+                <button id="pess-link-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    생산지원시스템
+                </button>
+            </div>
         </div>
 
         <!-- Right Panel: Detail Edit Form (initially hidden) -->
@@ -919,7 +925,7 @@
             try {
                 const docRef = doc(db, `artifacts/${appId}/public/data/items`, itemId);
                 await setDoc(docRef, itemDataToSave, { merge: true }); // Use setDoc with merge for both create and update
-                window.alert('데이터가 저장되었습니다!'); // Uncommented this line
+                window.alert('데이터가 저장되었습니다!'); // Re-enabled alert
                 console.log("Data saved successfully to Firestore.");
             } catch (e) {
                 console.error("Error saving document: ", e);
@@ -1025,6 +1031,11 @@
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
             }
+        });
+
+        // New: Event listener for "생산지원시스템" button
+        document.getElementById('pess-link-btn').addEventListener('click', () => {
+            window.open('http://esmart.hmd.co.kr/pess/', '_blank');
         });
 
 
