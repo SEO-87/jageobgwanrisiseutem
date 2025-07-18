@@ -75,6 +75,42 @@
         .status-table tbody tr:nth-child(even) {
             background-color: #f8fafc; /* gray-50 */
         }
+        /* 현황 테이블 O 표시 셀 스타일 */
+        .status-o {
+            background-color: #A7F3D0; /* green-200으로 변경하여 음영을 더 진하게 */
+            text-align: center;
+            border-radius: 0.25rem; /* rounded-md */
+        }
+        /* 현황 테이블 X 표시 셀 스타일 (빈칸) */
+        .status-x {
+            text-align: center;
+        }
+        /* 현황 테이블 행 클릭 가능 스타일 */
+        .status-table tbody tr {
+            /* cursor: pointer; */ /* Removed cursor pointer as row click no longer triggers hull detail */
+        }
+        .status-table tbody tr:hover {
+            /* background-color: #F3F4F6; */ /* Removed hover effect for row click */
+        }
+        /* 호선별 현황 테이블 스타일 */
+        .hull-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .hull-detail-table th, .hull-detail-table td {
+            border: 1px solid #e2e8f0; /* gray-200 */
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .hull-detail-table th {
+            background-color: #f8fafc; /* gray-50 */
+            font-weight: 600;
+            color: #475569; /* slate-600 */
+        }
+        .hull-detail-table tbody tr:nth-child(even) {
+            background-color: #f8fafc; /* gray-50 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col md:flex-row relative">
@@ -260,6 +296,19 @@
                 <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="floor">장판</button>
                 <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="furniture">가구</button>
             </div>
+            <!-- New: Button to show single hull search -->
+            <div class="mb-4">
+                <button id="show-single-hull-search-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    호선별 현황보기 <!-- Changed text and color here -->
+                </button>
+            </div>
+            <!-- New: Single Hull Search Group (initially hidden) -->
+            <div id="single-hull-search-group" class="mb-4 hidden">
+                <input type="text" id="single-hull-search-input" placeholder="호선 번호 입력" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <button id="search-single-hull-btn" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
+                    검색
+                </button>
+            </div>
             <div class="flex-1 overflow-y-auto no-scrollbar">
                 <table class="status-table">
                     <thead>
@@ -279,6 +328,35 @@
                         <!-- Status data will be injected here -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Right Panel: Hull Detail Status View (initially hidden) -->
+        <div id="hull-detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="hull-detail-title" class="text-xl font-semibold text-gray-800">호선 : 0000</h2>
+                <button id="close-hull-detail-btn" class="md:hidden text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto no-scrollbar">
+                <table class="hull-detail-table">
+                    <thead>
+                        <tr>
+                            <th>Deck</th>
+                            <th>데크커버링</th>
+                            <th>장판</th>
+                            <th>가구</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hull-detail-table-body">
+                        <!-- Hull-specific status data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3"> <!-- Added space-x-3 for spacing -->
+                <!-- Removed 돌아가기 button -->
+                <button id="close-hull-detail-btn-desktop" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300 hidden md:block">닫기</button>
             </div>
         </div>
 
@@ -401,6 +479,21 @@
         const closeNoteDetailBtn = document.getElementById('close-note-detail-btn'); // New: Close note detail button (mobile)
         const closeNoteDetailBtnDesktop = document.getElementById('close-note-detail-btn-desktop'); // New: Close note detail button (desktop)
 
+        // New: Hull Detail Panel Elements
+        const hullDetailPanel = document.getElementById('hull-detail-panel');
+        const hullDetailTitle = document.getElementById('hull-detail-title');
+        const hullDetailTableBody = document.getElementById('hull-detail-table-body');
+        const closeHullDetailBtn = document.getElementById('close-hull-detail-btn'); // Mobile close
+        const closeHullDetailBtnDesktop = document.getElementById('close-hull-detail-btn-desktop'); // Desktop close
+        // Removed backToStatusBtn: const backToStatusBtn = document.getElementById('back-to-status-btn'); // New: Back to status button
+
+        // New elements for single hull search
+        const showSingleHullSearchBtn = document.getElementById('show-single-hull-search-btn');
+        const singleHullSearchGroup = document.getElementById('single-hull-search-group');
+        const singleHullSearchInput = document.getElementById('single-hull-search-input');
+        const searchSingleHullBtn = document.getElementById('search-single-hull-btn');
+
+
         // Password Modal Elements
         const passwordModal = document.getElementById('password-modal');
         const deletePasswordInput = document.getElementById('delete-password-input');
@@ -451,8 +544,13 @@
                 console.log("Items fetched from Firestore:", items);
                 renderItemList(searchInput.value.trim()); // Re-render with current filter
                 // Also re-render status table if it's visible
-                if (!statusPanel.classList.contains('hidden')) {
+                if (!statusPanel.classList.contains('hidden') && document.querySelector('.status-table').classList.contains('hidden') === false) { // Check if main status table is visible
                     renderStatusTable(statusSearchInput.value.trim(), currentStatusFilterCategory);
+                }
+                // Also re-render hull detail if it's visible and an item is selected
+                if (!hullDetailPanel.classList.contains('hidden') && hullDetailTitle.textContent.includes('호선 : ')) {
+                    const currentHullId = hullDetailTitle.textContent.replace('호선 : ', '');
+                    showHullDetailStatus(currentHullId);
                 }
                 hideLoading();
 
@@ -521,6 +619,8 @@
                 statusPanel.classList.remove('flex');
                 noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
                 noteDetailPanel.classList.remove('flex');
+                hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+                hullDetailPanel.classList.remove('flex');
                 leftPanel.classList.remove('hidden'); // Show left panel
                 currentSelectedItem = null;
                 isNewItemMode = false;
@@ -602,6 +702,8 @@
             statusPanel.classList.remove('flex');
             noteDetailPanel.classList.add('hidden');
             noteDetailPanel.classList.remove('flex');
+            hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+            hullDetailPanel.classList.remove('flex');
             detailPanel.classList.remove('hidden');
             detailPanel.classList.add('flex');
             if (window.innerWidth < 768) {
@@ -629,35 +731,45 @@
                 const categoriesToDisplay = categoryFilter === 'all' ? taskCategories : [categoryFilter];
 
                 categoriesToDisplay.forEach(categoryKey => {
-                    const categoryData = item[categoryKey];
-                    if (categoryData) { // Only render if the category data exists for the item
-                        const row = statusTableBody.insertRow();
-                        row.insertCell().textContent = item.id; // 호선
-                        row.insertCell().textContent = {
-                            deckCovering: '데크커버링',
-                            floor: '장판',
-                            furniture: '가구'
-                        }[categoryKey]; // 작업 (카테고리 이름)
-                        row.insertCell().textContent = categoryData.n === 'Y' ? 'O' : 'X'; // N: 완료 -> O, 미완료 -> X
-                        row.insertCell().textContent = categoryData.c === 'Y' ? 'O' : 'X'; // C: 완료 -> O, 미완료 -> X
-                        row.insertCell().textContent = categoryData.b === 'Y' ? 'O' : 'X'; // B: 완료 -> O, 미완료 -> X
-                        row.insertCell().textContent = categoryData.a === 'Y' ? 'O' : 'X'; // A: 완료 -> O, 미완료 -> X
-                        row.insertCell().textContent = categoryData.u === 'Y' ? 'O' : 'X'; // U: 완료 -> O, 미완료 -> X
+                    const row = statusTableBody.insertRow();
+                    row.dataset.hullId = item.id; // Add data attribute for hull ID
+                    row.insertCell().textContent = item.id; // 호선
+                    row.insertCell().textContent = {
+                        deckCovering: '데크커버링',
+                        floor: '장판',
+                        furniture: '가구'
+                    }[categoryKey]; // 작업 (카테고리 이름)
 
-                        // Changed: Display link for notes if content exists
-                        const notesCell = row.insertCell();
-                        if (categoryData.notes && categoryData.notes.trim() !== '') {
-                            const noteLink = document.createElement('button');
-                            noteLink.textContent = '내용 보기'; // Text for the link
-                            noteLink.className = 'text-blue-600 hover:underline text-sm view-notes-link';
-                            noteLink.dataset.notes = categoryData.notes; // Store notes content in data attribute
-                            notesCell.appendChild(noteLink);
+                    // Function to create status cell (O/X with shading)
+                    const createStatusCell = (value) => {
+                        const cell = row.insertCell();
+                        if (item[categoryKey] && item[categoryKey][value] === 'Y') { // Check if category and deck key exist
+                            cell.classList.add('status-o'); // Add class for shaded 'O'
                         } else {
-                            notesCell.textContent = '-'; // Display hyphen if no notes
+                            cell.classList.add('status-x'); // Add class for empty 'X'
                         }
+                        cell.textContent = ''; // Always set text content to empty for visual O/X
+                    };
 
-                        row.insertCell().textContent = item.regDate; // 등록일
+                    createStatusCell('n'); // N
+                    createStatusCell('c'); // C
+                    createStatusCell('b'); // B
+                    createStatusCell('a'); // A
+                    createStatusCell('u'); // U
+
+                    // Changed: Display link for notes if content exists
+                    const notesCell = row.insertCell();
+                    if (item[categoryKey] && item[categoryKey].notes && item[categoryKey].notes.trim() !== '') {
+                        const noteLink = document.createElement('button');
+                        noteLink.textContent = '내용 보기'; // Text for the link
+                        noteLink.className = 'text-blue-600 hover:underline text-sm view-notes-link';
+                        noteLink.dataset.notes = item[categoryKey].notes; // Store notes content in data attribute
+                        notesCell.appendChild(noteLink);
+                    } else {
+                        notesCell.textContent = '-'; // Display hyphen if no notes
                     }
+
+                    row.insertCell().textContent = item.regDate; // 등록일
                 });
             });
 
@@ -666,8 +778,15 @@
             detailPanel.classList.remove('flex');
             noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
             noteDetailPanel.classList.remove('flex');
+            hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+            hullDetailPanel.classList.remove('flex');
             statusPanel.classList.remove('hidden');
             statusPanel.classList.add('flex');
+            // Hide single hull search group when main status table is rendered
+            singleHullSearchGroup.classList.add('hidden');
+            // Show the status table element itself
+            document.querySelector('.status-table').classList.remove('hidden');
+
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden');
             }
@@ -680,8 +799,63 @@
             detailPanel.classList.remove('flex');
             statusPanel.classList.add('hidden');
             statusPanel.classList.remove('flex');
+            hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+            hullDetailPanel.classList.remove('flex');
+            singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
             noteDetailPanel.classList.remove('hidden');
             noteDetailPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden');
+            }
+        }
+
+        // New function to show hull-specific detail status
+        function showHullDetailStatus(hullId) {
+            console.log("Showing hull detail status for:", hullId);
+            hullDetailTableBody.innerHTML = ''; // Clear existing table rows
+            hullDetailTitle.textContent = `호선 : ${hullId}`;
+
+            const selectedItem = items.find(item => item.id === hullId);
+
+            if (selectedItem) {
+                const deckNames = {
+                    n: 'Navi',
+                    c: 'C',
+                    b: 'B',
+                    a: 'A',
+                    u: 'UPP'
+                };
+
+                deckKeys.forEach(deckKey => {
+                    const row = hullDetailTableBody.insertRow();
+                    row.insertCell().textContent = deckNames[deckKey]; // Deck name (Navi, C, B, A, UPP)
+
+                    taskCategories.forEach(categoryKey => {
+                        const cell = row.insertCell();
+                        if (selectedItem[categoryKey] && selectedItem[categoryKey][deckKey] === 'Y') {
+                            cell.classList.add('status-o'); // Apply shading for 'Y'
+                        } else {
+                            cell.classList.add('status-x'); // Keep blank for 'N'
+                        }
+                        cell.textContent = ''; // Cell content is visually represented by shading/blank
+                    });
+                });
+            } else {
+                console.warn("No data found for hull ID:", hullId);
+                // Optionally display a message in the panel
+                hullDetailTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">해당 호선의 데이터가 없습니다.</td></tr>`;
+            }
+
+            // Hide other panels and show hull detail panel
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            statusPanel.classList.add('hidden'); // Hide main status panel
+            statusPanel.classList.remove('flex');
+            noteDetailPanel.classList.add('hidden');
+            noteDetailPanel.classList.remove('flex');
+            singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
+            hullDetailPanel.classList.remove('hidden');
+            hullDetailPanel.classList.add('flex');
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden');
             }
@@ -980,7 +1154,19 @@
                 }
             });
             renderStatusTable(statusSearchInput.value.trim(), currentStatusFilterCategory); // Render all items initially
-            // Hide left panel on mobile when status panel is shown
+            // Hide single hull search group when main status table is shown
+            singleHullSearchGroup.classList.add('hidden');
+            // Show the status table element itself
+            document.querySelector('.status-table').classList.remove('hidden');
+
+            // Ensure other panels are hidden
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            noteDetailPanel.classList.add('hidden');
+            noteDetailPanel.classList.remove('flex');
+            hullDetailPanel.classList.add('hidden');
+            hullDetailPanel.classList.remove('flex');
+
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden');
             }
@@ -992,6 +1178,8 @@
             statusPanel.classList.add('hidden');
             statusPanel.classList.remove('flex');
             leftPanel.classList.remove('hidden'); // Show left panel
+            // Also hide single hull search group if it was open
+            singleHullSearchGroup.classList.add('hidden');
         });
 
         // Event listener for status search input
@@ -1008,6 +1196,7 @@
                 const notes = target.dataset.notes;
                 showNoteDetail(notes);
             }
+            // Removed the else block that triggered showHullDetailStatus on row click
         });
 
         // Event listener for "전달 사항 상세" panel close button (mobile)
@@ -1017,6 +1206,12 @@
             noteDetailPanel.classList.remove('flex');
             statusPanel.classList.remove('hidden'); // Return to status panel
             statusPanel.classList.add('flex');
+            // Ensure the correct view within status panel is shown
+            if (!singleHullSearchGroup.classList.contains('hidden')) {
+                document.querySelector('.status-table').classList.add('hidden'); // Keep main table hidden if single hull search is active
+            } else {
+                document.querySelector('.status-table').classList.remove('hidden'); // Show main table
+            }
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
             }
@@ -1029,10 +1224,109 @@
             noteDetailPanel.classList.remove('flex');
             statusPanel.classList.remove('hidden'); // Return to status panel
             statusPanel.classList.add('flex');
+            // Ensure the correct view within status panel is shown
+            if (!singleHullSearchGroup.classList.contains('hidden')) {
+                document.querySelector('.status-table').classList.add('hidden'); // Keep main table hidden if single hull search is active
+            } else {
+                document.querySelector('.status-table').classList.remove('hidden'); // Show main table
+            }
             if (window.innerWidth < 768) {
                 leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
             }
         });
+
+        // Event listener for "호선별 현황" panel close button (mobile)
+        closeHullDetailBtn.addEventListener('click', () => {
+            console.log("Close Hull Detail button clicked.");
+            hullDetailPanel.classList.add('hidden');
+            hullDetailPanel.classList.remove('flex');
+            statusPanel.classList.remove('hidden'); // Return to status panel
+            statusPanel.classList.add('flex');
+            // Ensure the main status table is shown when returning from hull detail
+            document.querySelector('.status-table').classList.remove('hidden');
+            singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
+            }
+        });
+
+        // Event listener for "호선별 현황" panel close button (desktop)
+        closeHullDetailBtnDesktop.addEventListener('click', () => {
+            console.log("Close Hull Detail button (desktop) clicked.");
+            hullDetailPanel.classList.add('hidden');
+            hullDetailPanel.classList.remove('flex');
+            statusPanel.classList.remove('hidden'); // Return to status panel
+            statusPanel.classList.add('flex');
+            // Ensure the main status table is shown when returning from hull detail
+            document.querySelector('.status-table').classList.remove('hidden');
+            singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
+            }
+        });
+
+        // New: Event listener for "호선 현황보기" button
+        showSingleHullSearchBtn.addEventListener('click', () => {
+            console.log("Show Single Hull Search button clicked.");
+            // Hide the main status table
+            document.querySelector('.status-table').classList.add('hidden');
+            // Show the single hull search group
+            singleHullSearchGroup.classList.remove('hidden');
+            singleHullSearchInput.value = ''; // Clear previous input
+            singleHullSearchInput.focus(); // Focus on the input
+
+            // Hide other panels
+            detailPanel.classList.add('hidden');
+            detailPanel.classList.remove('flex');
+            noteDetailPanel.classList.add('hidden');
+            noteDetailPanel.classList.remove('flex');
+            hullDetailPanel.classList.add('hidden');
+            hullDetailPanel.classList.remove('flex');
+
+            // Ensure status panel is visible to contain the search group
+            statusPanel.classList.remove('hidden');
+            statusPanel.classList.add('flex');
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden');
+            }
+        });
+
+        // New: Event listener for "검색" button in single hull search
+        searchSingleHullBtn.addEventListener('click', () => {
+            const hullId = singleHullSearchInput.value.trim();
+            if (hullId) {
+                showHullDetailStatus(hullId);
+            } else {
+                // window.alert('호선 번호를 입력해주세요.'); // Changed from window.alert
+                console.warn("Single hull search: Hull ID is empty.");
+                // Optionally show a message to the user in the UI
+            }
+        });
+
+        // New: Event listener for Enter key in single hull search input
+        singleHullSearchInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                searchSingleHullBtn.click(); // Trigger search button click
+            }
+        });
+
+        // Removed: Event listener for "돌아가기" button in hull detail panel
+        /*
+        backToStatusBtn.addEventListener('click', () => {
+            console.log("Back to Status button clicked from Hull Detail.");
+            hullDetailPanel.classList.add('hidden');
+            hullDetailPanel.classList.remove('flex');
+            statusPanel.classList.remove('hidden'); // Show main status panel
+            statusPanel.classList.add('flex');
+            // Ensure the correct view within status panel is shown
+            document.querySelector('.status-table').classList.remove('hidden'); // Show main table
+            singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
+            if (window.innerWidth < 768) {
+                leftPanel.classList.add('hidden'); // Keep left panel hidden if status panel is shown on mobile
+            }
+        });
+        */
+
 
         // New: Event listener for "생산지원시스템" button
         document.getElementById('pess-link-btn').addEventListener('click', () => {
@@ -1050,18 +1344,41 @@
                     statusPanel.classList.remove('flex');
                     noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
                     noteDetailPanel.classList.remove('flex');
+                    hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+                    hullDetailPanel.classList.remove('flex');
+                    singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
                 } else if (!statusPanel.classList.contains('hidden')) {
                     statusPanel.classList.add('flex');
                     detailPanel.classList.add('hidden'); // Ensure only one right panel is active
                     detailPanel.classList.remove('flex');
                     noteDetailPanel.classList.add('hidden'); // Ensure note detail panel is hidden
                     noteDetailPanel.classList.remove('flex');
+                    hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+                    hullDetailPanel.classList.remove('flex');
+                    // Decide whether to show main status table or single hull search input
+                    if (!singleHullSearchGroup.classList.contains('hidden')) {
+                         document.querySelector('.status-table').classList.add('hidden');
+                    } else {
+                         document.querySelector('.status-table').classList.remove('hidden');
+                    }
                 } else if (!noteDetailPanel.classList.contains('hidden')) { // Handle note detail panel
                     noteDetailPanel.classList.add('flex');
                     detailPanel.classList.add('hidden');
                     detailPanel.classList.remove('flex');
                     statusPanel.classList.add('hidden');
                     statusPanel.classList.remove('flex');
+                    hullDetailPanel.classList.add('hidden'); // Ensure hull detail panel is hidden
+                    hullDetailPanel.classList.remove('flex');
+                    singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
+                } else if (!hullDetailPanel.classList.contains('hidden')) { // Handle hull detail panel
+                    hullDetailPanel.classList.add('flex');
+                    detailPanel.classList.add('hidden');
+                    detailPanel.classList.remove('flex');
+                    statusPanel.classList.add('hidden');
+                    statusPanel.classList.remove('flex');
+                    noteDetailPanel.classList.add('hidden');
+                    noteDetailPanel.classList.remove('flex');
+                    singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
                 }
                 else {
                     // If all are hidden, ensure they remain hidden but left panel is visible
@@ -1071,9 +1388,12 @@
                     statusPanel.classList.remove('flex');
                     noteDetailPanel.classList.add('hidden');
                     noteDetailPanel.classList.remove('flex');
+                    hullDetailPanel.classList.add('hidden');
+                    hullDetailPanel.classList.remove('flex');
+                    singleHullSearchGroup.classList.add('hidden'); // Hide single hull search group
                 }
             } else { // Mobile view
-                if (!detailPanel.classList.contains('hidden') || !statusPanel.classList.contains('hidden') || !noteDetailPanel.classList.contains('hidden')) {
+                if (!detailPanel.classList.contains('hidden') || !statusPanel.classList.contains('hidden') || !noteDetailPanel.classList.contains('hidden') || !hullDetailPanel.classList.contains('hidden')) {
                     leftPanel.classList.add('hidden'); // Hide left panel if any right panel is open
                 } else {
                     leftPanel.classList.remove('hidden'); // Show left panel if no right panel is open
