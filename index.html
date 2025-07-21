@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="h-full"> <!-- Added h-full -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,12 +65,15 @@
         .status-table th, .status-table td {
             border: 1px solid #e2e8f0; /* gray-200 */
             padding: 0.75rem;
-            text-align: left;
+            text-align: center; /* Changed to center */
         }
         .status-table th {
             background-color: #f8fafc; /* gray-50 */
             font-weight: 600;
             color: #475569; /* slate-600 */
+            position: sticky; /* Make header sticky */
+            top: 0; /* Stick to the top of its container */
+            z-index: 10; /* Ensure it stays above scrolling content */
         }
         .status-table tbody tr:nth-child(even) {
             background-color: #f8fafc; /* gray-50 */
@@ -101,7 +104,7 @@
         .hull-detail-table th, .hull-detail-table td {
             border: 1px solid #e2e8f0; /* gray-200 */
             padding: 0.75rem;
-            text-align: left;
+            text-align: center; /* Changed to center */
         }
         .hull-detail-table th {
             background-color: #f8fafc; /* gray-50 */
@@ -114,23 +117,27 @@
         /* 호선별 현황 테이블의 각 컬럼 너비를 동일하게 설정 */
         .hull-detail-table th:nth-child(1),
         .hull-detail-table td:nth-child(1) {
-            width: 25%;
+            width: 20%; /* Adjusted width for new column */
         }
         .hull-detail-table th:nth-child(2),
         .hull-detail-table td:nth-child(2) {
-            width: 25%;
+            width: 20%;
         }
         .hull-detail-table th:nth-child(3),
         .hull-detail-table td:nth-child(3) {
-            width: 25%;
+            width: 20%;
         }
         .hull-detail-table th:nth-child(4),
         .hull-detail-table td:nth-child(4) {
-            width: 25%;
+            width: 20%;
+        }
+        .hull-detail-table th:nth-child(5),
+        .hull-detail-table td:nth-child(5) {
+            width: 20%; /* New column for notes */
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col md:flex-row relative">
+<body class="bg-gray-100 min-h-screen flex flex-col md:flex-row relative h-full"> <!-- Added h-full -->
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay hidden">
         <div class="flex items-center text-blue-500 text-lg">
@@ -157,10 +164,10 @@
     </div>
 
     <!-- Main Container -->
-    <div class="flex flex-1 flex-col md:flex-row bg-white rounded-lg shadow-lg m-4 overflow-hidden">
+    <div class="flex flex-1 flex-col md:flex-row bg-white rounded-lg shadow-lg m-4 overflow-hidden h-[calc(100vh-2rem)]"> <!-- Explicit height calculation for main container -->
 
         <!-- Left Panel: Task List -->
-        <div id="left-panel" class="w-full md:w-1/3 border-r border-gray-200 p-4 flex flex-col">
+        <div id="left-panel" class="w-full md:w-1/3 border-r border-gray-200 p-4 flex flex-col h-full"> <!-- Added h-full -->
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-800">턴키작업 Monitoring System</h2> <!-- Changed text here -->
                 <!-- Removed add-item-btn from here -->
@@ -289,38 +296,38 @@
 
             <!-- Bottom Buttons -->
             <div class="mt-6 flex justify-end space-x-3">
-                <button id="cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300">Cancel</button>
-                <button id="save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">Save</button>
+                <button id="cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300">취소</button>
+                <button id="save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">저장</button>
             </div>
         </div>
 
         <!-- Right Panel: Status View (initially hidden) -->
-        <div id="status-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
-            <div class="flex justify-between items-center mb-4">
+        <div id="status-panel" class="w-full md:w-2/3 p-4 flex flex-col hidden h-full">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
                 <h2 class="text-xl font-semibold text-gray-800">현황</h2>
                 <button id="close-status-btn" class="md:hidden text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             <!-- Status Search Bar -->
-            <div class="mb-4">
+            <div class="mb-4 flex-shrink-0">
                 <input type="text" id="status-search-input" placeholder="호선 검색" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
             </div>
             <!-- New: Status Task Category Filter Buttons -->
-            <div class="mb-4 flex space-x-2 overflow-x-auto no-scrollbar">
+            <div class="mb-4 flex space-x-2 overflow-x-auto no-scrollbar flex-shrink-0">
                 <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-selected text-sm md:text-base" data-category="all">전체</button>
                 <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="deckCovering">데크커버링</button>
                 <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="floor">장판</button>
                 <button class="flex-1 py-2 px-4 rounded-md font-medium transition duration-300 status-category-button status-category-default text-sm md:text-base" data-category="furniture">가구</button>
             </div>
             <!-- New: Button to show single hull search -->
-            <div class="mb-4">
+            <div class="mb-4 flex-shrink-0">
                 <button id="show-single-hull-search-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                     호선별 현황보기 <!-- Changed text and color here -->
                 </button>
             </div>
             <!-- New: Single Hull Search Group (initially hidden) -->
-            <div id="single-hull-search-group" class="mb-4 hidden">
+            <div id="single-hull-search-group" class="mb-4 hidden flex-shrink-0">
                 <input type="text" id="single-hull-search-input" placeholder="호선 번호 입력" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <button id="search-single-hull-btn" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">
                     검색
@@ -364,6 +371,7 @@
                             <th>데크커버링</th>
                             <th>장판</th>
                             <th>가구</th>
+                            <th>전달 사항</th> <!-- Added new column for notes -->
                         </tr>
                     </thead>
                     <tbody id="hull-detail-table-body">
@@ -688,7 +696,7 @@
             deckYNSections.forEach(section => {
                 const deckKey = section.dataset.deck;
                 const nButton = section.querySelector('button[data-value="N"]');
-                const yButton = section.querySelector('button[data-value="Y"]'); 
+                const yButton = section.querySelector('button[data-value="Y"]');
 
                 let valueToSet = 'N'; // Default to 'N'
 
@@ -856,11 +864,24 @@
                         }
                         cell.textContent = ''; // Cell content is visually represented by shading/blank
                     });
+
+                    // Add notes cell for the current deck
+                    const notesCell = row.insertCell();
+                    const notesContent = selectedItem.deckCovering?.notes || selectedItem.floor?.notes || selectedItem.furniture?.notes || ''; // Get notes from any category for the deck
+                    if (notesContent.trim() !== '') {
+                        const noteLink = document.createElement('button');
+                        noteLink.textContent = '내용 보기'; // Text for the link
+                        noteLink.className = 'text-blue-600 hover:underline text-sm view-notes-link';
+                        noteLink.dataset.notes = notesContent; // Store notes content in data attribute
+                        notesCell.appendChild(noteLink);
+                    } else {
+                        notesCell.textContent = '-'; // Display hyphen if no notes
+                    }
                 });
             } else {
                 console.warn("No data found for hull ID:", hullId);
                 // Optionally display a message in the panel
-                hullDetailTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">해당 호선의 데이터가 없습니다.</td></tr>`;
+                hullDetailTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500">해당 호선의 데이터가 없습니다.</td></tr>`; // Adjusted colspan
             }
 
             // Hide other panels and show hull detail panel
