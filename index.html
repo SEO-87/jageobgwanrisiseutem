@@ -205,7 +205,7 @@
         </div>
 
         <!-- Right Panel: Detail Edit Form (initially hidden) -->
-        <div id="detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
+        <div id="detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden h-full"> <!-- Added h-full -->
             <div class="flex justify-between items-center mb-4">
                 <!-- Removed "X" from the title -->
                 <h2 id="detail-panel-title" class="text-xl font-semibold text-gray-800">2894</h2>
@@ -295,14 +295,14 @@
             </div>
 
             <!-- Bottom Buttons -->
-            <div class="mt-6 flex justify-end space-x-3">
+            <div class="mt-6 flex justify-end space-x-3 flex-shrink-0"> <!-- Added flex-shrink-0 -->
                 <button id="cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300">취소</button>
                 <button id="save-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">저장</button>
             </div>
         </div>
 
         <!-- Right Panel: Status View (initially hidden) -->
-        <div id="status-panel" class="w-full md:w-2/3 p-4 flex flex-col hidden h-full">
+        <div id="status-panel" class="w-full md:w-2/3 p-4 flex flex-col hidden h-full"> <!-- Added h-full -->
             <div class="flex justify-between items-center mb-4 flex-shrink-0">
                 <h2 class="text-xl font-semibold text-gray-800">현황</h2>
                 <button id="close-status-btn" class="md:hidden text-gray-500 hover:text-gray-700">
@@ -356,8 +356,8 @@
         </div>
 
         <!-- Right Panel: Hull Detail Status View (initially hidden) -->
-        <div id="hull-detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
-            <div class="flex justify-between items-center mb-4">
+        <div id="hull-detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden h-full"> <!-- Added h-full -->
+            <div class="flex justify-between items-center mb-4 flex-shrink-0"> <!-- Added flex-shrink-0 -->
                 <h2 id="hull-detail-title" class="text-xl font-semibold text-gray-800">호선 : 0000</h2>
                 <button id="close-hull-detail-btn" class="md:hidden text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -379,15 +379,15 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-6 flex justify-end space-x-3"> <!-- Added space-x-3 for spacing -->
+            <div class="mt-6 flex justify-end space-x-3 flex-shrink-0"> <!-- Added flex-shrink-0 and space-x-3 for spacing -->
                 <!-- Removed 돌아가기 button -->
                 <button id="close-hull-detail-btn-desktop" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300 hidden md:block">닫기</button>
             </div>
         </div>
 
         <!-- Right Panel: Note Detail View (initially hidden) -->
-        <div id="note-detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden">
-            <div class="flex justify-between items-center mb-4">
+        <div id="note-detail-panel" class="w-full md:w-2/3 p-4 flex-col hidden h-full"> <!-- Added h-full -->
+            <div class="flex justify-between items-center mb-4 flex-shrink-0"> <!-- Added flex-shrink-0 -->
                 <h2 class="text-xl font-semibold text-gray-800">전달 사항 상세</h2>
                 <button id="close-note-detail-btn" class="md:hidden text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -396,7 +396,7 @@
             <div id="note-content" class="flex-1 overflow-y-auto no-scrollbar p-2 bg-gray-50 rounded-md text-gray-700">
                 <!-- Note content will be injected here -->
             </div>
-             <div class="mt-6 flex justify-end">
+             <div class="mt-6 flex justify-end flex-shrink-0"> <!-- Added flex-shrink-0 -->
                 <button id="close-note-detail-btn-desktop" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-md transition duration-300 hidden md:block">닫기</button>
             </div>
         </div>
@@ -1441,3 +1441,4 @@
     </script>
 </body>
 </html>
+
