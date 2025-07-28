@@ -662,14 +662,15 @@
             detailPanelTitle.textContent = item ? item.id : '새 항목';
             // Load notes specific to the current task category
             notesTextarea.value = (item && item[currentSelectedTaskCategory] && item[currentSelectedTaskCategory].notes) ? item[currentSelectedTaskCategory].notes : '';
-            // Set regDateInput value based on whether it's a new item or existing item
-            // Get today's date in YYYY-MM-DD format, adjusted for local timezone offset
+
+            // Get today's date in YYYY-MM-DD format
             const today = new Date();
-            const offset = today.getTimezoneOffset() * 60000; // offset in milliseconds
+            const offset = today.getTimezoneOffset() * 60000; // Offset in milliseconds
             const localDate = new Date(today.getTime() - offset);
             const todayFormatted = localDate.toISOString().split('T')[0];
 
-            regDateInput.value = item ? item.regDate : todayFormatted;
+            // Set regDateInput value to today's date regardless of new or existing item
+            regDateInput.value = todayFormatted;
 
             if (isNewItemMode) {
                 itemIdInputGroup.classList.remove('hidden');
@@ -1441,4 +1442,3 @@
     </script>
 </body>
 </html>
-
